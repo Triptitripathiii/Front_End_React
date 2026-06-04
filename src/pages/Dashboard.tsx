@@ -122,7 +122,6 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState<"name" | "price-asc" | "price-desc" | "stock">("name");
-  const [apiSource, setApiSource] = useState<"Live Server" | "Demo Sandbox">("Demo Sandbox");
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   // Individual product selection quantities
@@ -135,50 +134,46 @@ const Dashboard = ({ user, onLogout }: DashboardProps) => {
     setLoading(true);
     setErrorDetails(null);
 
-    // Try fetching products, handling multiple fallback mechanisms for maximum resilience
     try {
       console.log("Attempting to fetch products from endpoint `/api/products`...");
       let response = await axios.get(`${BASE_URL}/api/products`);
       let dataList = parseProductsResponse(response.data);
       
-      if (dataList && dataList.length > 0) {
+      if (dataList) {
         setProducts(dataList);
-        setApiSource("Live Server");
-        setLoading(false);
-        return;
+      } else {
+        setProducts([]);
+        setErrorDetails("Invalid products response format");
       }
     } catch (error: any) {
-      console.warn("Fetch from `/api/products` failed. Retrying `/api/product`...");
-    }
-
-    // Secondary fallback endpoint `/api/product` (singular, matches getProduct controller name)
-    try {
-      let response = await axios.get(`${BASE_URL}/api/product`);
-      let dataList = parseProductsResponse(response.data);
-      
-      if (dataList && dataList.length > 0) {
-        setProducts(dataList);
-        setApiSource("Live Server");
-        setLoading(false);
-        return;
+      console.warn("Fetch from `/api/products` failed. Retrying `/api/product`...", error.message);
+      try {
+        let response = await axios.get(`${BASE_URL}/api/product`);
+        let dataList = parseProductsResponse(response.data);
+        
+        if (dataList) {
+          setProducts(dataList);
+        } else {
+          setProducts([]);
+          setErrorDetails("Invalid products response format");
+        }
+      } catch (innerError: any) {
+        console.error("All product fetch attempts failed:", innerError);
+        setProducts([]);
+        setErrorDetails(innerError.response?.data?.message || innerError.message || "Failed to load products from API.");
       }
-    } catch (error: any) {
-      console.warn("Fetch from `/api/product` failed as well.", error.message);
-      setErrorDetails(error.message);
+    } finally {
+      setLoading(false);
     }
-
-    // If both endpoints fail or the backend is offline, load the gorgeous MongoDB matched mock data!
-    console.log("Loading offline Demo Sandbox mock database...");
-    setProducts(FALLBACK_PRODUCTS);
-    setApiSource("Demo Sandbox");
-    setLoading(false);
   };
 
-  // Resilient response parser that handles backend naming quirks (like sending 'users' or 'products' or 'product')
+  // Resilient response parser that handles backend naming quirks (like sending 'users', 'products', 'product', or 'Product')
   const parseProductsResponse = (data: any): Product[] | null => {
     if (!data) return null;
     if (Array.isArray(data.products)) return data.products;
     if (Array.isArray(data.product)) return data.product;
+    if (Array.isArray(data.Product)) return data.Product;
+    if (Array.isArray(data.Products)) return data.Products;
     if (Array.isArray(data.users)) {
       console.warn("Resiliency Triggered: Received products list under 'users' key.");
       return data.users;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import Login from "./pages/Login";
+import SignUp from "./pages/SignUp";
 import Dashboard from "./pages/Dashboard";
 
 interface UserProfile {
@@ -9,6 +10,7 @@ interface UserProfile {
 
 function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [showSignUp, setShowSignUp] = useState(false);
 
   // Auto-restore login session from localStorage if available
   useEffect(() => {
@@ -30,6 +32,7 @@ function App() {
 
   const handleLogout = () => {
     setUser(null);
+    setShowSignUp(false);
     localStorage.removeItem("user_session");
   };
 
@@ -37,8 +40,16 @@ function App() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {user ? (
         <Dashboard user={user} onLogout={handleLogout} />
+      ) : showSignUp ? (
+        <SignUp
+          onSignUpSuccess={handleLoginSuccess}
+          onNavigateToLogin={() => setShowSignUp(false)}
+        />
       ) : (
-        <Login onLoginSuccess={handleLoginSuccess} />
+        <Login
+          onLoginSuccess={handleLoginSuccess}
+          onNavigateToSignUp={() => setShowSignUp(true)}
+        />
       )}
     </div>
   );

@@ -1,28 +1,30 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { BASE_URL } from "../api/api";
-import { LogIn, Mail, Lock, AlertCircle } from "lucide-react";
+import { UserPlus, Mail, Lock, User, AlertCircle } from "lucide-react";
 
-interface LoginProps {
-  onLoginSuccess: (name: string, email: string) => void;
-  onNavigateToSignUp: () => void;
+interface SignUpProps {
+  onSignUpSuccess: (name: string, email: string) => void;
+  onNavigateToLogin: () => void;
 }
 
-const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
+const SignUp = ({ onSignUpSuccess, onNavigateToLogin }: SignUpProps) => {
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
+    setName("");
     setEmail("");
     setPassword("");
     setErrorMessage("");
   }, []);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
+    if (!name.trim() || !email.trim() || !password.trim()) {
       setErrorMessage("Please fill in all fields.");
       return;
     }
@@ -31,23 +33,23 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
     setErrorMessage("");
 
     try {
-      const response = await axios.post(`${BASE_URL}/api/login`, {
+      const response = await axios.post(
+        "http://localhost:5000/api/register",{
+        name,
         email,
         password,
       });
-      console.log("Login response:", response.data);
-      const returnedName = response.data.user?.name || response.data.name || email.split("@")[0];
-      onLoginSuccess(returnedName, email);
+      console.log("Registration response:", response?.data);
+      onSignUpSuccess(name, email);
     } catch (error: any) {
-      console.warn("Login API error, checking fallback options.", error);
+      console.warn("API error during signup, checking for offline fallback options.", error);
       const status = error.response?.status;
       if (!status) {
-        // Backend offline / network error fallback for sandbox testing
-        console.warn("Offline fallback triggered for sandbox demo mode.");
-        const fallbackName = email.split("@")[0];
-        onLoginSuccess(fallbackName, email);
+        // Network error/offline mode
+        console.warn("Backend offline fallback triggered for sandbox demo mode.");
+        onSignUpSuccess(name, email);
       } else {
-        setErrorMessage(error.response?.data?.message || "Invalid credentials. Please try again.");
+        setErrorMessage(error.response?.data?.message || "Registration failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -116,11 +118,9 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
             pointerEvents: "none"
           }}
         />
-
-
       </div>
 
-      {/* Right Area - StoreHub Login Card Modal (25-30%) */}
+      {/* Right Area - StoreHub Sign Up Card (25-30%) */}
       <div
         className="login-split-right"
         style={{
@@ -168,10 +168,10 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
             </div>
 
             <h2 style={{ fontSize: "1.3rem", color: "var(--text-primary)", fontWeight: 700, marginBottom: "8px" }}>
-              Sign in to your account
+              Create your account
             </h2>
             <p style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-              Access inventory management and product insights
+              Start managing inventory and tracking insights
             </p>
           </div>
 
@@ -195,8 +195,36 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
             </div>
           )}
 
-          <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
-
+          <form onSubmit={handleSignUp} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+            {/* Name Field */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              <label style={{ fontSize: "0.8rem", fontWeight: 700, color: "var(--text-secondary)" }}>
+                Full Name
+              </label>
+              <div style={{ position: "relative" }}>
+                <User
+                  size={16}
+                  style={{
+                    position: "absolute",
+                    left: "14px",
+                    top: "50%",
+                    transform: "translateY(-50%)",
+                    color: "#b0b0b8",
+                    pointerEvents: "none"
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  className="glass-input"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={{ width: "100%", paddingLeft: "40px", fontSize: "0.9rem" }}
+                  autoComplete="off"
+                  required
+                />
+              </div>
+            </div>
 
             {/* Email Field */}
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -265,11 +293,11 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
               style={{ width: "100%", marginTop: "10px", padding: "12px", borderRadius: "8px", fontSize: "0.9rem" }}
             >
               {loading ? (
-                "Verifying Account..."
+                "Creating Account..."
               ) : (
                 <>
-                  <LogIn size={15} />
-                  <span>Log in to StoreHub</span>
+                  <UserPlus size={15} />
+                  <span>Sign up to StoreHub</span>
                 </>
               )}
             </button>
@@ -277,11 +305,11 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
 
           <div style={{ textAlign: "center", marginTop: "20px" }}>
             <span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>
-              Don't have an account?{" "}
+              Already have an account?{" "}
             </span>
             <button
               type="button"
-              onClick={onNavigateToSignUp}
+              onClick={onNavigateToLogin}
               style={{
                 background: "none",
                 border: "none",
@@ -293,7 +321,7 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
                 textDecoration: "underline"
               }}
             >
-              Sign Up
+              Log In
             </button>
           </div>
         </div>
@@ -302,4 +330,4 @@ const Login = ({ onLoginSuccess, onNavigateToSignUp }: LoginProps) => {
   );
 };
 
-export default Login;
+export default SignUp;
